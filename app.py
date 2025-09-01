@@ -1,11 +1,34 @@
 import streamlit as st
+
 import pandas as pd
 
+
+
+# Try sklearn for similarity
+
+try:
+
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    use_sklearn = True
+
+except:
+
+    use_sklearn = False
+
+
+
 # -------------------------------
-# Demo internship dataset
+
+# Sample internship dataset
+
 # -------------------------------
+
 internships = pd.DataFrame([
-    {"id": 1, "title": "AI Research Intern", "organization": "XYZ Labs", "location": "Bangalore",
+
+{"id": 1, "title": "AI Research Intern", "organization": "XYZ Labs", "location": "Bangalore",
      "eligibility": ["B.Tech", "M.Tech", "B.E.", "MSc"], "minimum_year": 2,
      "skills_required": ["machine learning", "python", "pytorch", "deep learning"],
      "description": "Work on ML models, implement experiments, and analyze results."},
@@ -531,207 +554,137 @@ internships = pd.DataFrame([
     "skills_required": ["research", "sustainability", "reporting"],
     "description": "Research sustainability initiatives and support CSR reporting."
   },
-  {
-    "id": 61,
-    "title": "EdTech Operations Intern",
-    "organization": "LearnSphere",
-    "location": "Remote",
-    "eligibility": ["BBA", "BA", "MBA"],
-    "minimum_year": 2,
-    "skills_required": ["excel", "coordination", "email communication"],
-    "description": "Support day-to-day operations of EdTech courses and student management."
-  },
-  {
-    "id": 62,
-    "title": "E-commerce Intern",
-    "organization": "ShopWiz",
-    "location": "Mumbai",
-    "eligibility": ["BBA", "B.Com", "MBA"],
-    "minimum_year": 2,
-    "skills_required": ["amazon seller central", "cataloging", "pricing", "excel"],
-    "description": "Manage product listings and assist in e-commerce analytics."
-  },
-  {
-    "id": 63,
-    "title": "Speech and NLP Intern",
-    "organization": "LinguaAI",
-    "location": "Bangalore",
-    "eligibility": ["B.Tech", "M.Tech", "MSc"],
-    "minimum_year": 3,
-    "skills_required": ["nlp", "python", "spacy", "text processing"],
-    "description": "Work on NLP datasets and develop text classification models."
-  },
-  {
-    "id": 64,
-    "title": "Illustration Intern",
-    "organization": "DoodleDesk",
-    "location": "Remote",
-    "eligibility": ["BFA", "B.Des"],
-    "minimum_year": 2,
-    "skills_required": ["illustrator", "procreate", "creativity", "digital art"],
-    "description": "Create digital illustrations for products, websites, and campaigns."
-  },
-  {
-    "id": 65,
-    "title": "Insurance Analytics Intern",
-    "organization": "Insurelytics",
-    "location": "Delhi",
-    "eligibility": ["B.Tech", "B.Com", "MBA"],
-    "minimum_year": 3,
-    "skills_required": ["excel", "claims analysis", "risk", "data entry"],
-    "description": "Analyze insurance data and help streamline risk reporting processes."
-  },
-  {
-    "id": 66,
-    "title": "Art Curation Intern",
-    "organization": "GalleryNova",
-    "location": "Kolkata",
-    "eligibility": ["BA", "MA", "BFA"],
-    "minimum_year": 2,
-    "skills_required": ["art history", "curation", "writing", "research"],
-    "description": "Assist with art selection, cataloging, and event preparation."
-  },
-  {
-    "id": 67,
-    "title": "HR Analytics Intern",
-    "organization": "TalentIQ",
-    "location": "Bangalore",
-    "eligibility": ["MBA", "BBA", "B.Com"],
-    "minimum_year": 3,
-    "skills_required": ["excel", "power bi", "data analysis", "hr data"],
-    "description": "Support HR metrics reporting, dashboards, and performance analysis."
-  },
-  {
-    "id": 68,
-    "title": "Brand Strategy Intern",
-    "organization": "BrandMint",
-    "location": "Mumbai",
-    "eligibility": ["MBA", "BBA", "BA"],
-    "minimum_year": 3,
-    "skills_required": ["branding", "marketing", "creativity", "communication"],
-    "description": "Work on brand research, identity building and storytelling strategies."
-  },
-  {
-    "id": 69,
-    "title": "Data Journalism Intern",
-    "organization": "DataScope Media",
-    "location": "Remote",
-    "eligibility": ["BA", "MA", "BSc"],
-    "minimum_year": 3,
-    "skills_required": ["data visualization", "storytelling", "journalism", "excel"],
-    "description": "Create data-backed stories and visual content for digital publications."
-  },
-  {
-    "id": 70,
-    "title": "CSR Intern",
-    "organization": "ImpactBridge",
-    "location": "Chennai",
-    "eligibility": ["BA", "MA", "MBA"],
-    "minimum_year": 2,
-    "skills_required": ["csr", "reporting", "impact assessment", "documentation"],
-    "description": "Support corporate social responsibility initiatives and stakeholder outreach."
-  }
+
 ])
 
-# -------------------------------
-# Text processing + similarity
-# -------------------------------
-try:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-    use_sklearn = True
-except:
-    use_sklearn = False
+
 
 def make_internship_text(row):
+
     return " ".join([row["title"], row["organization"],
+
                      " ".join(row["skills_required"]), row["description"]]).lower()
+
+
 
 internships["text"] = internships.apply(make_internship_text, axis=1)
 
+
+
+# Build TF-IDF if possible
+
 tfidf_vectorizer, tfidf_matrix = None, None
+
 if use_sklearn:
+
     tfidf_vectorizer = TfidfVectorizer(stop_words="english")
+
     tfidf_matrix = tfidf_vectorizer.fit_transform(internships["text"].tolist())
 
+
+
 def jaccard_similarity(a, b):
+
     aset, bset = set(a.split()), set(b.split())
+
     return len(aset & bset) / len(aset | bset) if aset and bset else 0.0
 
+
+
 def compute_similarity(text, idx):
+
     if use_sklearn:
+
         vec = tfidf_vectorizer.transform([text])
+
         return cosine_similarity(vec, tfidf_matrix[idx])[0][0]
+
     return jaccard_similarity(text, internships.loc[idx, "text"])
 
+
+
+# Recommendation function
+
 def recommend(candidate, top_n=3):
+
     cand_text = " ".join([candidate["degree"]] + candidate["skills"] + candidate["interests"]).lower()
+
     results = []
+
     for idx, row in internships.iterrows():
+
         score = compute_similarity(cand_text, idx)
+
         results.append({
+
             "title": row["title"],
+
             "organization": row["organization"],
+
             "location": row["location"],
+
             "score": round(score, 3),
+
             "description": row["description"]
+
         })
+
     return pd.DataFrame(results).sort_values("score", ascending=False).head(top_n)
 
+
+
 # -------------------------------
+
 # Streamlit UI
+
 # -------------------------------
-st.set_page_config(page_title="Internship Recommender", page_icon="🎯", layout="wide")
 
-st.title("🎯 Internship Recommender System")
-st.markdown("Find the **best internships** based on your profile, skills, and interests 🚀")
+st.title("🎯 Internship Recommender Demo")
 
-# Input form
-st.header("👤 Candidate Profile")
-col1, col2 = st.columns(2)
 
-with col1:
-    name = st.text_input("Your Name")
-    degree = st.selectbox("Degree", [
-        "BA","BA LLB","BBA","BCA","B.Com","B.Des","B.E.","B.Ed","BFA","BMM","BSc","B.Tech",
-        "History","LLB","MA","MBA","MCA","MPhil","MSc","M.Tech","Anthropology"
-    ])
-    year = st.number_input("Year of Study", min_value=1, max_value=5, step=1)
 
-with col2:
-    skills = st.text_area("Your Skills (comma separated)", "python, statistics, machine learning")
-    interests = st.text_area("Your Interests (comma separated)", "data science, AI")
-    location = st.text_input("Preferred Location(s) (comma separated)", "Bangalore, Remote")
+name = st.text_input("Your Name")
 
-# Button action
-if st.button("✨ Get Recommendations", use_container_width=True):
+degree = st.selectbox("Degree", [    "BA","BA LLB","BBA","BCA","B.Com","B.Des","B.E.","B.Ed","BFA","BMM","BSc","B.Tech","History","LLB","MA","MBA","MCA","MPhil","MSc","M.Tech","Anthropology" ,])
+
+year = st.number_input("Year of Study", min_value=1, max_value=5, step=1)
+
+skills = st.text_area("Your Skills (comma separated)", "python, statistics, machine learning")
+
+interests = st.text_area("Your Interests (comma separated)", "data science, AI")
+
+location = st.text_input("Preferred Location(s) (comma separated)", "Bangalore, Remote")
+
+
+
+if st.button("Get Recommendations"):
+
     candidate = {
-        "name": name,
-        "degree": degree,
-        "year": year,
-        "skills": [s.strip() for s in skills.split(",") if s.strip()],
-        "interests": [i.strip() for i in interests.split(",") if i.strip()],
-        "location_preferences": [l.strip() for l in location.split(",") if l.strip()]
-    }
-    
-    recs = recommend(candidate, top_n=3)
-    st.subheader(f"📌 Top Recommendations for {candidate['name'] or 'you'}:")
 
-    # Display recommendations as nice cards
+        "name": name,
+
+        "degree": degree,
+
+        "year": year,
+
+        "skills": [s.strip() for s in skills.split(",") if s.strip()],
+
+        "interests": [i.strip() for i in interests.split(",") if i.strip()],
+
+        "location_preferences": [l.strip() for l in location.split(",") if l.strip()]
+
+    }
+
+    recs = recommend(candidate, top_n=3)
+
+    st.subheader("Top Recommendations for you:")
+
     for _, r in recs.iterrows():
-        with st.container():
-            st.markdown(
-                f"""
-                <div style="padding:15px; border-radius:12px; 
-                            background-color:#f9f9f9; margin-bottom:15px;
-                            border:1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <h4 style="margin-bottom:5px;">🎓 {r['title']}</h4>
-                    <p style="margin:0;"><b>Organization:</b> {r['organization']}</p>
-                    <p style="margin:0;"><b>Location:</b> {r['location']}</p>
-                    <p style="margin:0; color:#666;"><b>Match Score:</b> {r['score']}</p>
-                    <hr style="margin:8px 0;">
-                    <p style="margin:0;">{r['description']}</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+
+        st.markdown(f"**{r['title']}** at *{r['organization']}* ({r['location']})")
+
+        st.caption(f"Match Score: {r['score']}")
+
+        st.write(r['description'])
+
+        st.divider()
